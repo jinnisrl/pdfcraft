@@ -5,6 +5,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+# Leave out the ArtCraft name and marks (docs/brand/LICENSE-brand.txt: modified versions
+# must remove them). For redistributors; official builds keep the default.
+unbranded = []
+
 [lints]
 workspace = true
 

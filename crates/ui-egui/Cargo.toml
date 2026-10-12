@@ -6,6 +6,10 @@ edition.workspace = true
 license.workspace = true
 rust-version = "1.95"
 
+[features]
+# See pdfcraft-engine's `unbranded`: no ArtCraft wordmark, mark or community links in the UI.
+unbranded = ["pdfcraft-engine/unbranded"]
+
 [lints]
 workspace = true
 

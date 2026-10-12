@@ -1524,6 +1524,7 @@ fn dialog_about(ui: &mut egui::Ui, req: &mut Pending) -> bool {
         2 => crate::credits::models_ui(ui),
         _ => {
             ui.horizontal(|ui| {
+                #[cfg(not(feature = "unbranded"))]
                 widgets::artcraft_mark(ui, 40.0);
                 ui.vertical(|ui| {
                     ui.label(egui::RichText::new("PdfCraft").font(theme::semibold(20.0)));
@@ -1540,10 +1541,14 @@ fn dialog_about(ui: &mut egui::Ui, req: &mut Pending) -> bool {
                 .small(),
             );
             ui.add_space(12.0);
+            #[cfg(not(feature = "unbranded"))]
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new(tl!("Part of")).color(t.text_muted));
                 widgets::artcraft_logo(ui, 16.0);
             });
+            // A modified build may still say, in plain text, what it is based on.
+            #[cfg(feature = "unbranded")]
+            ui.label(egui::RichText::new("Based on PdfCraft by the ArtCraft team and community.").color(t.text_muted));
             ui.add_space(6.0);
             if let Some(cmd) = widgets::community_links(ui) {
                 req.link_command = Some(cmd);
