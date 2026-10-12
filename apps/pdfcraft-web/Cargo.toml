@@ -6,6 +6,11 @@ edition.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+# `trunk build --release --features unbranded`: a build without the ArtCraft name and marks,
+# for sites that host a modified PdfCraft (docs/brand/LICENSE-brand.txt).
+unbranded = ["pdfcraft-ui-egui/unbranded"]
+
 [lints]
 workspace = true
 

@@ -78,6 +78,19 @@ Local test: `python3 -m http.server 8765` inside the folder, then open http://lo
   downloads) are blocked.
 - Don't send `X-Frame-Options: DENY` or a `frame-ancestors` CSP that excludes the embedding page.
 
+## Hosting a modified build (no ArtCraft marks)
+
+The ArtCraft name and logos are not covered by the code license, and a modified PdfCraft must
+leave them out (`docs/brand/LICENSE-brand.txt`). Build with the `unbranded` feature to do that:
+
+```sh
+cd apps/pdfcraft-web && trunk build --release --features unbranded
+```
+
+It removes the ArtCraft wordmark and mark, the community card on the home screen, the Discord
+button and the ArtCraft entries of the Help menu. The About dialog says in plain text that the
+build is based on PdfCraft, and links to the source on GitHub. License files and `NOTICE` stay.
+
 ## Renderer selection and fallback flags
 
 PdfCraft renders with wgpu. It uses **WebGPU** when the browser has it and falls back to
