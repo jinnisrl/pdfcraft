@@ -70,7 +70,13 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     app.combine_tab.focused = false;
                 }
                 // Reserve the three icon buttons, Discord and their gaps outside the scrolling tabs.
-                let controls_width = ui.fonts_mut(|f| f.layout_no_wrap("Discord".into(), theme::medium(13.0), t.text).size().x)
+                // (No Discord button in an unbranded build, so no room for it either.)
+                let discord_width = if cfg!(feature = "unbranded") {
+                    0.0
+                } else {
+                    ui.fonts_mut(|f| f.layout_no_wrap("Discord".into(), theme::medium(13.0), t.text).size().x)
+                };
+                let controls_width = discord_width
                     + 3.0 * button
                     + 54.0
                     + window_controls::width(&controls.right);
