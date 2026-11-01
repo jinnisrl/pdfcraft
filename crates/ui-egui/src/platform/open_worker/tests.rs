@@ -764,3 +764,27 @@ fn a_new_file_from_the_os_brings_the_window_forward_before_it_is_prepared() {
     assert_eq!(doc.info.pages.len(), 2);
     let _ = std::fs::remove_file(path);
 }
+
+/// A file a host page sent with its own path (`path_inbox`, the web bridge's `pdfcraft:open`
+/// with `path`) opens as if read from that path, which the web hands back with every save of the
+/// document; a file without one has no path to hand back.
+#[test]
+#[allow(clippy::expect_used)]
+fn a_host_file_opens_at_the_path_the_host_gave_it() {
+    let (mut harness, _) = harness();
+    harness.state().path_inbox.lock().expect("path inbox").push(("contract.pdf".into(), "/host-mark/contract.pdf".into(), fixture(1)));
+    for _ in 0..500 {
+        harness.step();
+        if harness.state().views.len() == 2 && harness.state().pending_opens.is_empty() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(harness.state().path_inbox.lock().expect("path inbox").is_empty());
+    let id = harness.state().views.last().expect("the host file has a tab").id;
+    let doc = harness.state().session.get(id).expect("the host file is open");
+    assert_eq!(doc.name, "contract.pdf");
+    assert_eq!(doc.path.as_deref(), Some("/host-mark/contract.pdf"));
+    let existing = harness.state().views[0].id;
+    assert_eq!(harness.state().session.get(existing).expect("the first file is open").path, None);
+}

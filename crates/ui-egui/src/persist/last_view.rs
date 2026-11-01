@@ -43,7 +43,8 @@ impl PdfCraftApp {
     /// screen, the display it will go back to, at the page reached.
     fn view_to_remember(&self, index: usize) -> Option<LastView> {
         let view = self.views.get(index)?;
-        let path = self.session.get(view.id)?.path.as_deref()?;
+        // On the web a path is the host page's, never reopened from here: nothing to remember.
+        let path = self.session.get(view.id)?.path.as_deref().filter(|_| cfg!(not(target_arch = "wasm32")))?;
         let shown = view.normal_display();
         // A fixed zoom keeps its fraction (62.5%, not 63%): `zoom_name` rounds to whole percents.
         let zoom = match shown.fit {

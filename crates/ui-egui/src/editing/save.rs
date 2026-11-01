@@ -71,7 +71,6 @@ impl PdfCraftApp {
         }
         #[cfg(target_arch = "wasm32")]
         {
-            let _ = path;
             if !self.flatten_fill_sign_for_save(id) {
                 return false;
             }
@@ -86,7 +85,7 @@ impl PdfCraftApp {
             // the browser downloads them.
             let to_host = self.host_save.is_some();
             let delivered = match &self.host_save {
-                Some(save) => save(&name, &bytes, matches!(target, SaveTarget::As)),
+                Some(save) => save(&name, path.as_deref(), &bytes, matches!(target, SaveTarget::As)),
                 None => download(&name, &bytes),
             };
             match delivered {

@@ -151,6 +151,7 @@ impl PdfCraftApp {
             full_screen: false,
             inbox: Default::default(),
             startup_inbox: Default::default(),
+            path_inbox: Default::default(),
             startup_superseded: false,
             failed_inbox: Default::default(),
             unsaved_flag: Default::default(),
@@ -470,6 +471,13 @@ impl eframe::App for PdfCraftApp {
             for (name, bytes) in startup {
                 let activate = !self.startup_superseded;
                 if let Err(e) = self.open_bytes_with_focus(&name, None, bytes, activate) {
+                    self.notify_fmt("Couldn't open {name}: {e}", &[("name", &name), ("e", &e)]);
+                }
+            }
+            let hosted = self.path_inbox.lock().map(|mut q| std::mem::take(&mut *q)).unwrap_or_default();
+            for (name, path, bytes) in hosted {
+                let activate = !self.startup_superseded;
+                if let Err(e) = self.open_bytes_with_focus(&name, Some(path), bytes, activate) {
                     self.notify_fmt("Couldn't open {name}: {e}", &[("name", &name), ("e", &e)]);
                 }
             }

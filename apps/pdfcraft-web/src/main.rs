@@ -66,7 +66,7 @@ fn main() {
                         {
                             app.comment_prefs.author = author.chars().take(200).collect();
                         }
-                        bridge.listen(app.startup_inbox.clone(), cc.egui_ctx.clone());
+                        bridge.listen(app.startup_inbox.clone(), app.path_inbox.clone(), cc.egui_ctx.clone());
                         app.host_save = Some(bridge.save_fn());
                         app.host_dirty = Some(bridge.dirty_fn());
                         bridge.post_ready();
@@ -127,10 +127,13 @@ async fn fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
 /// `type`:
 ///
 /// - `pdfcraft:ready` (to the parent): the app is listening; send files now.
-/// - `pdfcraft:open` (from the parent): `{ name, bytes }`, where `bytes` is an `ArrayBuffer` or
-///   `Uint8Array` holding a PDF. It opens in a tab, like a `?file=` URL.
-/// - `pdfcraft:save` (to the parent): `{ name, saveAs, bytes }` when the user saves; `bytes` is
-///   a transferred `ArrayBuffer`. The parent stores the file (and reports its own errors).
+/// - `pdfcraft:open` (from the parent): `{ name, bytes, path? }`, where `bytes` is an
+///   `ArrayBuffer` or `Uint8Array` holding a PDF. It opens in a tab, like a `?file=` URL. With a
+///   `path` (starting with `/`) the document lives at that path, as if read from it.
+/// - `pdfcraft:save` (to the parent): `{ name, path, saveAs, bytes }` when the user saves; `bytes`
+///   is a transferred `ArrayBuffer`, `path` the document's own path: the one the parent opened it
+///   with, absent for a file from the computer or a new document. So the parent can tell its own
+///   document from any other. The parent stores the file (and reports its own errors).
 /// - `pdfcraft:dirty` (to the parent): `{ dirty }` whenever unsaved work appears or goes away.
 /// - `pdfcraft:failed` (to the parent): `{ error }` when the app couldn't start.
 ///
@@ -187,7 +190,7 @@ mod host {
         }
 
         /// Hear `pdfcraft:open` from the parent and queue the file like a `?file=` download.
-        pub fn listen(&self, inbox: pdfcraft_ui_egui::Inbox, ctx: egui::Context) {
+        pub fn listen(&self, inbox: pdfcraft_ui_egui::Inbox, path_inbox: pdfcraft_ui_egui::PathInbox, ctx: egui::Context) {
             let parent = self.parent.clone();
             let origin = self.origin.clone();
             let on_message = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(move |event: web_sys::MessageEvent| {
@@ -207,8 +210,17 @@ mod host {
                 } else {
                     return;
                 };
-                if let Ok(mut q) = inbox.lock() {
-                    q.push((name, bytes));
+                match string(&data, "path").filter(|p| p.starts_with('/') && p.len() > 1) {
+                    Some(path) => {
+                        if let Ok(mut q) = path_inbox.lock() {
+                            q.push((name, path, bytes));
+                        }
+                    }
+                    None => {
+                        if let Ok(mut q) = inbox.lock() {
+                            q.push((name, bytes));
+                        }
+                    }
                 }
                 ctx.request_repaint();
             });
@@ -220,11 +232,16 @@ mod host {
 
         pub fn save_fn(&self) -> pdfcraft_ui_egui::HostSaveFn {
             let bridge = self.clone();
-            Box::new(move |name: &str, bytes: &[u8], save_as: bool| {
+            Box::new(move |name: &str, path: Option<&str>, bytes: &[u8], save_as: bool| {
                 let buffer = js_sys::Uint8Array::from(bytes).buffer();
-                let m =
-                    message(&[("type", "pdfcraft:save".into()), ("name", name.into()), ("saveAs", save_as.into()), ("bytes", buffer.clone().into())])
-                        .ok_or_else(|| "couldn't build the message".to_string())?;
+                let m = message(&[
+                    ("type", "pdfcraft:save".into()),
+                    ("name", name.into()),
+                    ("path", path.map_or(JsValue::UNDEFINED, JsValue::from_str)),
+                    ("saveAs", save_as.into()),
+                    ("bytes", buffer.clone().into()),
+                ])
+                .ok_or_else(|| "couldn't build the message".to_string())?;
                 bridge.post(&m, Some(&buffer))
             })
         }

@@ -318,7 +318,9 @@ impl PdfCraftApp {
             self.select_mode(self.default_mode);
             self.left_open = left_open;
         }
-        if let Some(p) = path {
+        // On the web a path is the host page's (`pdfcraft:open` with a `path`): Recent can't reopen
+        // it, so it stays out of the list the browser keeps.
+        if let Some(p) = path.filter(|_| cfg!(not(target_arch = "wasm32"))) {
             #[cfg(target_os = "macos")]
             macos_association::repair(std::path::Path::new(&p));
             self.recent.retain(|r| r.path != p);
